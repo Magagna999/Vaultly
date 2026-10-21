@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Chrome Password Vault",
+  "version": "0.1.0",
+  "description": "Personal password vault with client-side encryption and Supabase sync.",
+  "action": { "default_popup": "popup.html", "default_title": "Password Vault" },
+  "options_page": "options.html",
+  "background": { "service_worker": "background.js", "type": "module" },
+  "permissions": ["storage"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; style-src 'self'; img-src 'self' data:; connect-src https://*.supabase.co"
+  }
+}
