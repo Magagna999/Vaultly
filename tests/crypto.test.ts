@@ -112,9 +112,7 @@ describe('vault creation and unlocking', () => {
   it('rejects a wrong master password with WRONG_PASSWORD', async () => {
     const { meta, key } = await createVault(MASTER, USER_A, ITERATIONS);
 
-    const wrong = await captureError(() =>
-      unlockVault('totally-wrong-password', USER_A, meta),
-    );
+    const wrong = await captureError(() => unlockVault('totally-wrong-password', USER_A, meta));
     expect(wrong.code).toBe('WRONG_PASSWORD');
     expect(wrong.message).not.toContain(MASTER);
 
@@ -197,15 +195,11 @@ describe('tamper detection', () => {
     expect(original.id).toBe('rec-a');
 
     // Same ciphertext, different record id.
-    const otherRecord = await captureError(() =>
-      decryptCredential(keyA, USER_A, { ...row, id: 'rec-b' }),
-    );
+    const otherRecord = await captureError(() => decryptCredential(keyA, USER_A, { ...row, id: 'rec-b' }));
     expect(otherRecord.code).toBe('CRYPTO');
 
     // Same ciphertext, different user.
-    const otherUser = await captureError(() =>
-      decryptCredential(keyA, USER_B, row),
-    );
+    const otherUser = await captureError(() => decryptCredential(keyA, USER_B, row));
     expect(otherUser.code).toBe('CRYPTO');
 
     // The ciphertext of another record is swapped into this row.
@@ -225,9 +219,7 @@ describe('tamper detection', () => {
     expect(swapped.code).toBe('CRYPTO');
 
     // A key from another vault cannot read the row either.
-    const otherKey = await captureError(() =>
-      decryptCredential(keyB, USER_A, row),
-    );
+    const otherKey = await captureError(() => decryptCredential(keyB, USER_A, row));
     expect(otherKey.code).toBe('CRYPTO');
   });
 });
@@ -290,12 +282,7 @@ describe('vault parameters', () => {
     expect(verifierError.code).toBe('CRYPTO');
 
     // A credential of the first vault cannot be read with the key of the second.
-    const write = await encryptCredential(
-      first.key,
-      USER_A,
-      'rec-salt',
-      credentialData(),
-    );
+    const write = await encryptCredential(first.key, USER_A, 'rec-salt', credentialData());
     const credentialError = await captureError(() =>
       decryptCredential(second.key, USER_A, toRow(write, USER_A)),
     );
@@ -349,15 +336,11 @@ describe('vault parameters', () => {
   // Case 10: the KDF iteration count is validated.
   it('rejects KDF iteration counts outside the allowed range', async () => {
     for (const iterations of INVALID_ITERATIONS) {
-      const error = await captureError(() =>
-        createVault(MASTER, USER_A, iterations),
-      );
+      const error = await captureError(() => createVault(MASTER, USER_A, iterations));
       expect(error.code).toBe('VALIDATION');
     }
 
-    const deriveError = await captureError(() =>
-      deriveKey(MASTER, generateSalt(), 1_000),
-    );
+    const deriveError = await captureError(() => deriveKey(MASTER, generateSalt(), 1_000));
     expect(deriveError.code).toBe('VALIDATION');
 
     // The minimum is accepted.
@@ -409,17 +392,8 @@ describe('password normalization', () => {
     // And the other way round.
     const other = await createVault(decomposed, USER_A, ITERATIONS);
     const unlockedOther = await unlockVault(composed, USER_A, other.meta);
-    const writeOther = await encryptCredential(
-      other.key,
-      USER_A,
-      'rec-nfkc',
-      credentialData(),
-    );
-    const credentialOther = await decryptCredential(
-      unlockedOther,
-      USER_A,
-      toRow(writeOther, USER_A),
-    );
+    const writeOther = await encryptCredential(other.key, USER_A, 'rec-nfkc', credentialData());
+    const credentialOther = await decryptCredential(unlockedOther, USER_A, toRow(writeOther, USER_A));
     expect(credentialOther.password).toBe(PASSWORD);
   });
 });
