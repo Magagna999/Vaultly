@@ -51,7 +51,7 @@ export function SettingsView(props: {
       )
     )
       return;
-    downloadText('password-vault-PLAINTEXT.csv', exportPlainCsv(props.credentials), 'text/csv');
+    downloadText('vaultly-PLAINTEXT-export.csv', exportPlainCsv(props.credentials), 'text/csv');
     setCsvAck(false);
   }
 

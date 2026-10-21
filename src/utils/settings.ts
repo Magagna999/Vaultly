@@ -2,7 +2,7 @@ import type { VaultSettings } from '@/types';
 import { createExtensionStore } from './storage';
 
 const store = createExtensionStore('local');
-const KEY = 'cpv-settings';
+const KEY = 'vaultly-settings';
 export const DEFAULT_SETTINGS: VaultSettings = { autoLockMinutes: 5 };
 export const AUTO_LOCK_CHOICES = [1, 5, 15, 30, 60, 0];
 

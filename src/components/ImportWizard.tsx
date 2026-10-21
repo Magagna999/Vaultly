@@ -106,7 +106,7 @@ export function ImportWizard(props: {
             </>
           ) : (
             <Notice kind="info">
-              Select a <code>.cpvbackup.json</code> file and enter the passphrase used to create it.
+              Select a <code>.json</code> file and enter the passphrase used to create it.
             </Notice>
           )}
           {error && <Notice kind="error">{error}</Notice>}

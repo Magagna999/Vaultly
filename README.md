@@ -2,8 +2,6 @@
 
 > Your passwords. Your vault. Your control.
 
-(Chrome Password Vault)
-
 Estensione Chrome (Manifest V3) per importare, archiviare, consultare ed esportare **le proprie** credenziali in un archivio personale. I dati sono **cifrati sul dispositivo** (AES-256-GCM) prima di essere inviati a Supabase: il database non vede mai password, username, URL o note in chiaro.
 
 Stack: TypeScript strict · React 18 · Vite 5 · Supabase (Auth + PostgreSQL + RLS) · Web Crypto API · Vitest · ESLint · Prettier.
@@ -27,16 +25,16 @@ Stack: TypeScript strict · React 18 · Vite 5 · Supabase (Auth + PostgreSQL + 
 
 ### Cifratura (formato v1)
 
-| Elemento | Scelta |
-| --- | --- |
-| Cifratura | AES-256-GCM (Web Crypto), tag a 128 bit |
-| Derivazione chiave | PBKDF2-HMAC-SHA256 dalla master password (normalizzata NFKC), iterazioni configurabili (default **600.000**, min 100.000, max 10.000.000) |
-| Salt | 16 byte casuali, **uno per vault** |
-| IV | 12 byte casuali, **nuovo per ogni cifratura** |
-| AAD | `cpv:<versione>:<user_id>:<id_record>`: lega il ciphertext al proprietario e alla riga (il server non può scambiare righe tra record/utenti senza che la decifratura fallisca) |
-| Chiave | `CryptoKey` **non estraibile**, solo in memoria della pagina |
-| Verifica password | un "verifier" cifrato con la chiave derivata (in tabella `vaults`) distingue password errata da dati corrotti |
-| Versionamento | `encryption_version` in ogni riga e in `vaults`; versioni sconosciute vengono rifiutate |
+| Elemento           | Scelta                                                                                                                                                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cifratura          | AES-256-GCM (Web Crypto), tag a 128 bit                                                                                                                                            |
+| Derivazione chiave | PBKDF2-HMAC-SHA256 dalla master password (normalizzata NFKC), iterazioni configurabili (default **600.000**, min 100.000, max 10.000.000)                                          |
+| Salt               | 16 byte casuali, **uno per vault**                                                                                                                                                 |
+| IV                 | 12 byte casuali, **nuovo per ogni cifratura**                                                                                                                                      |
+| AAD                | `vaultly:<versione>:<user_id>:<id_record>`: lega il ciphertext al proprietario e alla riga (il server non può scambiare righe tra record/utenti senza che la decifratura fallisca) |
+| Chiave             | `CryptoKey` **non estraibile**, solo in memoria della pagina                                                                                                                       |
+| Verifica password  | un "verifier" cifrato con la chiave derivata (in tabella `vaults`) distingue password errata da dati corrotti                                                                      |
+| Versionamento      | `encryption_version` in ogni riga e in `vaults`; versioni sconosciute vengono rifiutate                                                                                            |
 
 Se la decifratura fallisce (password errata, ciphertext/IV/AAD alterati) l'operazione lancia un errore generico: **non viene mai mostrato alcun dato parziale**.
 
@@ -50,13 +48,13 @@ Poiché la chiave non è persistita (nemmeno in `chrome.storage`), **a ogni aper
 
 ### Dati lasciati in chiaro su Supabase (implicazioni di privacy)
 
-| Dato | Dove | Perché / implicazione |
-| --- | --- | --- |
-| Email dell'account | `auth.users` | Necessaria per l'autenticazione. |
-| `user_id`, `id` record | tabelle | Chiavi tecniche e isolamento RLS. |
-| `created_at`, `updated_at`, `revision` | `credentials` | Sincronizzazione/conflitti. Rivelano *quando* modifichi e *quante* volte. |
-| Dimensione del ciphertext, numero di righe | `credentials` | Rivela approssimativamente il numero di credenziali e la lunghezza dei dati. |
-| Parametri KDF (iterazioni, salt), verifier cifrato | `vaults` | Pubblici per definizione, non contengono segreti. Un attaccante che ottenga il DB può tentare un brute-force offline sulla master password: **scegli una master password lunga e unica**. |
+| Dato                                               | Dove          | Perché / implicazione                                                                                                                                                                     |
+| -------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Email dell'account                                 | `auth.users`  | Necessaria per l'autenticazione.                                                                                                                                                          |
+| `user_id`, `id` record                             | tabelle       | Chiavi tecniche e isolamento RLS.                                                                                                                                                         |
+| `created_at`, `updated_at`, `revision`             | `credentials` | Sincronizzazione/conflitti. Rivelano _quando_ modifichi e _quante_ volte.                                                                                                                 |
+| Dimensione del ciphertext, numero di righe         | `credentials` | Rivela approssimativamente il numero di credenziali e la lunghezza dei dati.                                                                                                              |
+| Parametri KDF (iterazioni, salt), verifier cifrato | `vaults`      | Pubblici per definizione, non contengono segreti. Un attaccante che ottenga il DB può tentare un brute-force offline sulla master password: **scegli una master password lunga e unica**. |
 
 Nome del sito, URL, username, password e note sono **tutti** dentro il blob cifrato. Per questo il rilevamento dei duplicati avviene sul client dopo la decifratura (un hash lato server rivelerebbe uguaglianze tra password/siti).
 
@@ -88,7 +86,7 @@ Limiti: 10 MB / 50.000 righe per file.
 
 ## 4. Backup, ripristino e rischi
 
-- **Backup cifrato** (`Impostazioni → Download encrypted backup`): file `password-vault-backup-AAAA-MM-GG.cpvbackup.json`. Formato `cpv-backup` v1: intestazione in chiaro (`format`, `version`, `kdf`, `iterations`, `salt`, `iv`, `createdAt`) e payload cifrato con AES-256-GCM, chiave derivata con PBKDF2 da una **passphrase di backup** scelta al momento (può coincidere con la master password ma non è obbligatorio). Gli id non sono esportati: il backup è ripristinabile in qualsiasi account.
+- **Backup cifrato** (`Impostazioni → Download encrypted backup`): file `vaultly-backup-AAAA-MM-GG.json`. Formato `vaultly-backup` v1: intestazione in chiaro (`format`, `version`, `kdf`, `iterations`, `salt`, `iv`, `createdAt`) e payload cifrato con AES-256-GCM, chiave derivata con PBKDF2 da una **passphrase di backup** scelta al momento (può coincidere con la master password ma non è obbligatorio). Gli id non sono esportati: il backup è ripristinabile in qualsiasi account.
 - **Ripristino** (`Impostazioni → Restore from backup…`): scegli il file, inserisci la passphrase; i record passano per lo stesso flusso di anteprima/duplicati/conferma dell'import CSV.
 - Il salvataggio avviene solo tramite il normale download del browser, mai in percorsi automatici.
 - **Rischi:** senza la master password il vault è irrecuperabile; senza la passphrase di backup il backup è irrecuperabile. Conserva le passphrase in un luogo sicuro separato dal file. L'**esportazione CSV in chiaro** è disponibile nella "Danger zone" con checkbox e conferma: usala solo se strettamente necessario ed elimina il file subito dopo. I valori che iniziano con `= + - @` non sono alterati (per non corrompere le password): non aprire il CSV in un foglio di calcolo.
@@ -97,9 +95,9 @@ Limiti: 10 MB / 50.000 righe per file.
 ## 5. Configurazione di Supabase
 
 1. Crea un progetto su <https://supabase.com> (piano gratuito sufficiente).
-2. **Schema**: apri *SQL Editor*, incolla ed esegui `supabase/migrations/20241001000000_init_vault.sql` (idempotente). In alternativa, con la CLI: `supabase link --project-ref <ref>` e `supabase db push`.
-3. **Auth**: *Authentication → Providers → Email* abilitato. Per uso personale consigli: disattiva "Allow new users to sign up" dopo aver creato il tuo account (*Authentication → Sign In / Providers*), così nessun altro potrà registrarsi. Se mantieni la conferma email, conferma prima di accedere. Imposta *Password requirements* adeguati e, se vuoi, MFA.
-4. **Chiavi**: *Project Settings → API*: copia **Project URL** e la chiave **anon / publishable**. **Non** usare mai `service_role` / `secret`.
+2. **Schema**: apri _SQL Editor_, incolla ed esegui `supabase/migrations/20241001000000_init_vault.sql` (idempotente). In alternativa, con la CLI: `supabase link --project-ref <ref>` e `supabase db push`.
+3. **Auth**: _Authentication → Providers → Email_ abilitato. Per uso personale consigli: disattiva "Allow new users to sign up" dopo aver creato il tuo account (_Authentication → Sign In / Providers_), così nessun altro potrà registrarsi. Se mantieni la conferma email, conferma prima di accedere. Imposta _Password requirements_ adeguati e, se vuoi, MFA.
+4. **Chiavi**: _Project Settings → API_: copia **Project URL** e la chiave **anon / publishable**. **Non** usare mai `service_role` / `secret`.
 5. Copia `.env.example` in `.env` e compila:
    ```
    VITE_SUPABASE_URL=https://<ref>.supabase.co
@@ -120,7 +118,7 @@ npm run build            # genera dist/
 2. **Carica estensione non pacchettizzata** → seleziona la cartella `dist/`.
 3. Alla prima installazione si apre la pagina a schermo intero: crea l'account, poi il vault (master password), poi importa o aggiungi credenziali. Il popup dell'icona offre la stessa app.
 
-Dopo ogni modifica al codice o a `.env`: `npm run build` e premi *Ricarica* in `chrome://extensions`. `npm run dev` ricompila in watch mode.
+Dopo ogni modifica al codice o a `.env`: `npm run build` e premi _Ricarica_ in `chrome://extensions`. `npm run dev` ricompila in watch mode.
 
 ## 7. Qualità e test
 
@@ -136,10 +134,11 @@ npm run verify        # lint + typecheck + build + test
 I test (`tests/`) sono tutti **automatici e senza rete**: usano Web Crypto reale, un finto server in memoria che emula RLS/revisioni e un finto client Supabase che registra i payload. Coprono cifratura/decifratura, password errate, manomissione di ciphertext/IV, unicità degli IV, import CSV (valido, malformato, Unicode, delimitatori), duplicati, conflitti di sincronizzazione, isolamento tra utenti, sessione/autenticazione, blocco/sblocco/auto-lock, backup e ripristino, assenza di password in chiaro nei payload, permessi del manifest, analisi statica delle migration (RLS, assenza di policy permissive), assenza di `console.*`, di `service_role` e di codice remoto nel bundle.
 
 **Controlli manuali (richiedono un progetto Supabase reale):**
+
 - esecuzione della migration e `supabase/tests/rls_isolation.sql` (RLS effettiva sul database);
 - registrazione/accesso/refresh token reali e comportamento con conferma email;
 - caricamento dell'estensione in Chrome e prova del flusso completo (import CSV reale, copia negli appunti, auto-lock, due dispositivi con conflitto);
-- verifica in *Table Editor* che le righe contengano solo `ciphertext`/`iv`.
+- verifica in _Table Editor_ che le righe contengano solo `ciphertext`/`iv`.
 
 ## 8. Limiti noti
 

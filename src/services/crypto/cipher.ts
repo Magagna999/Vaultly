@@ -6,7 +6,7 @@
  *          (NFKC-normalized) and a random per-vault salt. The CryptoKey is created
  *          non-extractable, so page scripts cannot export the raw key bytes.
  *  - data: JSON, UTF-8 encoded, encrypted with a fresh random 96-bit IV per operation.
- *  - AAD:  "cpv:<version>:<userId>:<recordId>" binds a ciphertext to its owner and row,
+ *  - AAD:  "vaultly:<version>:<userId>:<recordId>" binds a ciphertext to its owner and row,
  *          so a server cannot swap ciphertexts between rows/users without detection.
  *  - Decryption failure (wrong key, modified ciphertext/IV/AAD) always yields a generic
  *    CRYPTO error and never partial plaintext (GCM verifies the tag before releasing data).
@@ -33,7 +33,7 @@ export function generateSalt(): Bytes {
 }
 
 export function buildAad(version: number, userId: string, recordId: string): Bytes {
-  return enc.encode(`cpv:${version}:${userId}:${recordId}`);
+  return enc.encode(`vaultly:${version}:${userId}:${recordId}`);
 }
 
 export function assertIterations(iterations: number): void {

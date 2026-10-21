@@ -15,7 +15,7 @@ import {
 import { DEFAULT_KDF_ITERATIONS, ENCRYPTION_VERSION, KDF_NAME } from './constants';
 
 /** Constant plaintext used to verify a master password without touching user data. */
-const VERIFIER_PLAINTEXT = 'cpv-vault-verifier';
+const VERIFIER_PLAINTEXT = 'vaultly-verifier';
 const VERIFIER_RECORD_ID = 'verifier';
 const enc = new TextEncoder();
 const dec = new TextDecoder();

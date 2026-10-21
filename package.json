@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Chrome MV3 extension: client-side encrypted personal password vault backed by Supabase",
+  "description": "Vaultly: Chrome MV3 extension, client-side encrypted personal password vault backed by Supabase",
   "scripts": {
     "dev": "vite build --watch --mode development",
     "build": "tsc --noEmit && vite build",

@@ -1,4 +1,4 @@
--- Chrome Password Vault - initial schema (idempotent, safe to re-run).
+-- Vaultly - initial schema (idempotent, safe to re-run).
 -- The server only ever stores ciphertext. Passwords, usernames, URLs and notes
 -- are encrypted client-side (AES-256-GCM) before they reach these tables.
 

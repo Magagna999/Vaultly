@@ -21,7 +21,7 @@ export function getSupabase(): SupabaseClient {
   client = createClient(cfg.url, cfg.anonKey, {
     auth: {
       storage: createExtensionStore('session'),
-      storageKey: 'cpv-auth',
+      storageKey: 'vaultly-auth',
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,

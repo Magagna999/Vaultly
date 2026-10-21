@@ -1,11 +1,11 @@
 /**
- * Encrypted backup format "cpv-backup" v1 (JSON file chosen/saved by the user):
+ * Encrypted backup format "vaultly-backup" v1 (JSON file chosen/saved by the user):
  *
  *  { format, version, kdf: "PBKDF2-SHA256", iterations, salt, iv, ciphertext, createdAt, encryptionVersion }
  *
  * The key is derived from a BACKUP passphrase (not necessarily the master password) with
  * PBKDF2-HMAC-SHA256 and a fresh random salt; the payload { credentials: [...] } is sealed with
- * AES-256-GCM (AAD "cpv:backup:1"). Ids/revisions are not exported, so a backup can be restored
+ * AES-256-GCM (AAD "vaultly:backup:1"). Ids/revisions are not exported, so a backup can be restored
  * into any account. Losing the passphrase makes the backup unrecoverable.
  */
 import type { Credential, CredentialData } from '@/types';
@@ -21,9 +21,9 @@ import {
 import { DEFAULT_KDF_ITERATIONS, ENCRYPTION_VERSION } from '@/services/crypto/constants';
 import { MIN_MASTER_PASSWORD_LENGTH, validateCredentialData } from '@/utils/validation';
 
-export const BACKUP_FORMAT = 'cpv-backup';
+export const BACKUP_FORMAT = 'vaultly-backup';
 export const BACKUP_VERSION = 1;
-const AAD = new TextEncoder().encode(`cpv:backup:${BACKUP_VERSION}`);
+const AAD = new TextEncoder().encode(`vaultly:backup:${BACKUP_VERSION}`);
 
 export interface BackupFile {
   format: typeof BACKUP_FORMAT;
@@ -87,7 +87,7 @@ function parseBackupFile(text: string): BackupFile {
   } catch {
     throw new AppError('IMPORT', 'This is not a valid backup file.');
   }
-  if (f.format !== BACKUP_FORMAT) throw new AppError('IMPORT', 'This is not a Password Vault backup.');
+  if (f.format !== BACKUP_FORMAT) throw new AppError('IMPORT', 'This is not a Vaultly backup.');
   if (f.version !== BACKUP_VERSION || f.encryptionVersion !== ENCRYPTION_VERSION) {
     throw new AppError('IMPORT', 'Unsupported backup version.');
   }
@@ -133,5 +133,5 @@ export async function restoreBackup(text: string, passphrase: string): Promise<C
 }
 
 export function backupFilename(now: Date = new Date()): string {
-  return `password-vault-backup-${now.toISOString().slice(0, 10)}.cpvbackup.json`;
+  return `vaultly-backup-${now.toISOString().slice(0, 10)}.json`;
 }
