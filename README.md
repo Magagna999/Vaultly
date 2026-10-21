@@ -146,6 +146,9 @@ I test (`tests/`) sono tutti **automatici e senza rete**: usano Web Crypto reale
 - Nessuna coda offline persistente: in assenza di rete le operazioni sono ritentate (3 tentativi, backoff esponenziale) e poi falliscono con un messaggio chiaro; i dati non salvati non sono conservati su disco.
 - L'eliminazione è definitiva (con controllo di revisione per non cancellare modifiche altrui); non c'è cestino.
 - La pulizia degli appunti è "best effort" e funziona solo finché la pagina resta aperta.
+- Se dopo la copia ne copi un'altra, la pulizia degli appunti dopo 30 s può sovrascrivere il contenuto più recente (il browser non permette di verificarlo senza permessi aggiuntivi).
+- I record che non si decifrano (chiave errata o dati corrotti) sono nascosti e contati nell'avviso della dashboard, ma non sono cancellabili dall'interfaccia.
+- Limiti dimensione: CSV 10 MB, backup 32 MB (verificati prima della lettura/parsing).
 - Nessun auto-compilamento nei siti (volutamente: nessun accesso ai contenuti delle pagine).
 
 ## 9. Struttura
