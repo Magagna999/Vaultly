@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react';
 import type { Credential, ImportAction } from '@/types';
 import type { SyncService } from '@/services/sync/sync';
-import { parseChromeCsv, type ImportRow, type InvalidRow, CHROME_HEADERS } from '@/services/import/chrome';
+import {
+  MAX_CSV_BYTES,
+  parseChromeCsv,
+  type ImportRow,
+  type InvalidRow,
+  CHROME_HEADERS,
+} from '@/services/import/chrome';
 import {
   buildPlan,
   classifyDuplicates,
@@ -11,7 +17,7 @@ import {
 } from '@/services/import/duplicates';
 import { executeImport, type ImportSummary } from '@/services/import/importer';
 import { restoreBackup } from '@/services/export/backup';
-import { userMessage } from '@/utils/errors';
+import { AppError, userMessage } from '@/utils/errors';
 import { hostnameOf } from '@/utils/validation';
 import { Field, Notice } from './common';
 
@@ -57,6 +63,7 @@ export function ImportWizard(props: {
     setBusy(true);
     setError(null);
     try {
+      if (file.size > MAX_CSV_BYTES) throw new AppError('IMPORT', 'The file is too large (max 10 MB).');
       const text = await file.text(); // local only; never uploaded or persisted
       if (props.mode === 'csv') {
         const parsed = parseChromeCsv(text);

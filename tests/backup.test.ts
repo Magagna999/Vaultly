@@ -431,3 +431,14 @@ describe('plaintext CSV export', () => {
     expect(parsed.valid.map((v) => v.data)).toEqual(credentials);
   });
 });
+
+describe('backup size limit', () => {
+  it('rejects oversized backup files before parsing them', async () => {
+    const { MAX_BACKUP_BYTES } = await import('@/services/export/backup');
+    await expect(
+      restoreBackup('x'.repeat(MAX_BACKUP_BYTES + 1), 'any passphrase here'),
+    ).rejects.toMatchObject({
+      code: 'IMPORT',
+    });
+  });
+});

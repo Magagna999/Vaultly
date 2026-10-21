@@ -48,6 +48,8 @@ const CHUNK = 100;
  */
 export class SyncService {
   private cache = new Map<string, Credential>();
+  /** Bumped by every successful write; lets load() detect writes that finished while it was fetching. */
+  private writes = 0;
   private inflight = new Map<string, Promise<unknown>>();
   private _status: SyncStatus = { state: 'idle', lastSyncedAt: null, error: null };
   private listeners = new Set<(s: SyncStatus) => void>();
@@ -75,18 +77,23 @@ export class SyncService {
   async load(): Promise<LoadResult> {
     return this.track(async () => {
       const key = this.deps.getKey();
-      const rows = await this.retry(() => this.deps.store.list());
-      const next = new Map<string, Credential>();
-      let undecryptable = 0;
-      for (const row of rows) {
-        try {
-          next.set(row.id, await decryptCredential(key, this.deps.userId, row));
-        } catch {
-          undecryptable++;
+      for (let attempt = 0; ; attempt++) {
+        const startedAt = this.writes;
+        const rows = await this.retry(() => this.deps.store.list());
+        const next = new Map<string, Credential>();
+        let undecryptable = 0;
+        for (const row of rows) {
+          try {
+            next.set(row.id, await decryptCredential(key, this.deps.userId, row));
+          } catch {
+            undecryptable++;
+          }
         }
+        // A write finished while we were fetching: the snapshot may miss it, so fetch again.
+        if (this.writes !== startedAt && attempt < 2) continue;
+        this.cache = next;
+        return { credentials: this.list(), undecryptable };
       }
-      this.cache = next;
-      return { credentials: this.list(), undecryptable };
     });
   }
 
@@ -102,6 +109,7 @@ export class SyncService {
         if (!stored) throw new AppError('SERVER', 'The credential was not saved. Please retry.');
         const cred = await decryptCredential(key, this.deps.userId, stored);
         this.cache.set(id, cred);
+        this.writes++;
         return cred;
       }),
     );
@@ -121,6 +129,7 @@ export class SyncService {
           const saved = await this.retry(() => this.deps.store.update(row, revision));
           const cred = await decryptCredential(key, this.deps.userId, saved);
           this.cache.set(id, cred);
+          this.writes++;
           return { ok: true, credential: cred };
         } catch (e) {
           if (!isAppError(e, 'CONFLICT')) throw e;
@@ -154,6 +163,7 @@ export class SyncService {
         try {
           await this.retry(() => this.deps.store.remove(id, revision));
           this.cache.delete(id);
+          this.writes++;
           return { ok: true } as const;
         } catch (e) {
           if (isAppError(e, 'CONFLICT')) return { ok: false, conflict: true } as const;
@@ -205,7 +215,9 @@ export class SyncService {
     for (const it of items) {
       try {
         const row = await encryptCredential(key, this.deps.userId, it.id, it.data);
-        await this.retry(() => this.deps.store.update(row, it.revision));
+        const saved = await this.retry(() => this.deps.store.update(row, it.revision));
+        this.cache.set(it.id, await decryptCredential(key, this.deps.userId, saved));
+        this.writes++;
         res.done++;
       } catch (e) {
         if (isAppError(e, 'CONFLICT')) res.conflicts++;

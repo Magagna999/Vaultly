@@ -23,6 +23,7 @@ import { MIN_MASTER_PASSWORD_LENGTH, validateCredentialData } from '@/utils/vali
 
 export const BACKUP_FORMAT = 'vaultly-backup';
 export const BACKUP_VERSION = 1;
+export const MAX_BACKUP_BYTES = 32 * 1024 * 1024;
 const AAD = new TextEncoder().encode(`vaultly:backup:${BACKUP_VERSION}`);
 
 export interface BackupFile {
@@ -81,6 +82,7 @@ export async function createBackup(
 }
 
 function parseBackupFile(text: string): BackupFile {
+  if (text.length > MAX_BACKUP_BYTES) throw new AppError('IMPORT', 'The backup file is too large.');
   let f: Partial<BackupFile>;
   try {
     f = JSON.parse(text) as Partial<BackupFile>;

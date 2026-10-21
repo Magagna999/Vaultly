@@ -497,3 +497,51 @@ describe('bulk import', () => {
   // is safe because `withRetry` reuses the same encrypted rows, but re-running a whole
   // failed import would insert the already-saved items again under new ids.
 });
+
+describe('review follow-ups', () => {
+  it('replaceMany refreshes the cache so a following update has the new revision', async () => {
+    const server = new FakeServer();
+    const sync = makeSync(server, USER_A, () => keyA);
+    const created = await sync.create(data({ password: 'old-password' }));
+
+    const res = await sync.replaceMany([
+      { id: created.id, revision: created.revision, data: data({ password: 'new-password' }) },
+    ]);
+
+    expect(res.done).toBe(1);
+    const cached = sync.list().find((c) => c.id === created.id);
+    expect(cached?.password).toBe('new-password');
+    expect(cached?.revision).toBe(created.revision + 1);
+    const next = await sync.update(created.id, data({ password: 'third' }));
+    expect(next.ok).toBe(true);
+  });
+
+  it('load() does not lose a credential created while the list request was in flight', async () => {
+    const server = new FakeServer();
+    const sync = makeSync(server, USER_A, () => keyA);
+    const store = server.storeFor(USER_A);
+    const realList = store.list.bind(store);
+    let injected = false;
+    const racing = new SyncService({
+      store: {
+        ...store,
+        list: async () => {
+          const rows = await realList(); // snapshot taken BEFORE the concurrent create
+          if (!injected) {
+            injected = true;
+            await racing.create(data({ name: 'Created during load' }));
+          }
+          return rows;
+        },
+      },
+      userId: USER_A,
+      getKey: () => keyA,
+      retry: { sleep: async () => {}, baseDelayMs: 1 },
+    });
+
+    const result = await racing.load();
+
+    expect(result.credentials.map((c) => c.name)).toContain('Created during load');
+    void sync;
+  });
+});
